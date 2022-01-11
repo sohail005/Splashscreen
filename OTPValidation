@@ -1,0 +1,221 @@
+import React, { useEffect, useState } from 'react'
+import { View, Text, KeyboardAvoidingView, ScrollView, TextInput, TouchableOpacity, StyleSheet, Dimensions } from 'react-native'
+import api from '../Helper/helperModule';
+import Path from '../Helper/Api';
+import moment from 'moment';
+import AsyncStorage from '@react-native-async-storage/async-storage'
+
+const w = Dimensions.get('screen').width;
+const h = Dimensions.get('screen').height;
+const OTP = ({navigation,route}) => {
+
+  const [mobile, setMobile] = useState('');
+  const [responseMessage, setResponseMessage] = useState('');
+  const [enterOTP, setEnterOTP] = useState('');
+  const [errOTP, setErrorOTP] = useState('');
+  const [err, setErr] = useState(null);
+
+const clearInputField=()=>{
+  setEnterOTP('');
+  setErrorOTP('');
+}
+  
+  /* OTP Validations */
+  const ValidateOTP = () => {
+    let isFormValidated = true;
+
+    let errors = {
+
+        otpErr: null,
+    }
+
+    if (enterOTP == '' || enterOTP == null) {
+        errors.otpErr = 'OTP Required'
+        isFormValidated = false;
+        setErrorOTP(errors.otpErr)
+    } else if (enterOTP.length < 6) {
+        errors.otpErr = 'Invalid OTP'
+        isFormValidated = false;
+        setErrorOTP(errors.otpErr)
+    } else {
+        setErrorOTP('');
+    }
+    if (!isFormValidated) {
+
+        setErr(errors)
+        return false
+    }
+    return true
+
+ }
+/* After OTP Submission */
+ const submitWithOTP = () => {
+   console.log('date------',moment(new Date()).format("yyyy-MM-DD HH:mm:ss.SSS"));
+   let currentdate = moment(new Date()).format("yyyy-MM-DD HH:mm:ss.SSS");
+  const Request = {
+      "userOTP": enterOTP,
+      "mobile":mobile,
+      "webUserTypeId":1,
+      "DateCreated":currentdate
+  }
+
+  console.log('request-----',Request)
+
+  api.postData(Path.verifyOTP, Request).then((response) => {
+      
+      if (response != undefined && response != null) {
+          if (
+              response.data != undefined &&
+              response.data != null &&
+              response.data != ''
+          ) {
+              if (response.data.ReturnCode == 0) {
+                setResponseMessage(response.data.ReturnMessage);
+                 
+   AsyncStorage.setItem('customerToken',response.data.Data[0].JwtToken)
+                  navigation.navigate('HomeScreen');
+                  setEnterOTP('');
+              } else {
+                  setResponseMessage(response.data.ReturnMessage);
+              }
+
+          }
+      }
+  });
+}
+
+  useEffect(() => {
+    
+    const unsubscribe = navigation.addListener('focus', () => {
+      let mobilenumber = route.params.mobilenumber
+    console.log('mobile number in OTP',mobilenumber)
+    setMobile(mobilenumber);
+        clearInputField();
+    });
+    return () => unsubscribe;
+}, []);
+
+/* Resend OTP */
+const onResendOtp = async () => {
+    const Request = {
+      "Mobile": mobile,
+      "WebUserTypeId": 1
+
+    }
+
+    api.postData(Path.verifymobile, Request).then((response) => {
+      console.log('verify mobile response-------', response.data.JwtToken)
+
+      if (response != undefined && response != null) {
+
+        if (response.data.ReturnCode == 0) {
+          setResponseMessage(response.data.ReturnMessage);
+          setMobileResponse(true);
+         
+
+        } else if(response.data.ReturnCode == 15) {
+          setResponseMessage('');
+          setResponseMessage(response.data.ReturnMessage);
+         
+        }
+        else{
+          setResponseMessage('');
+          setResponseMessage(response.data.ReturnMessage);
+        }
+      }
+    });
+  }
+  
+    return (
+        <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={{flex:1,backgroundColor:'#fff'}}
+    >
+        <View style={styles.container}>
+        <View style={styles.logo}><Text style={{fontSize:30,fontWeight:'700',elevation:20}}>HOPP</Text></View>
+            {/* Horizontal Scroll Bar for Tags Lines */}
+            <View>
+            <ScrollView
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+        >
+          <View style={styles.tagline}><Text style={styles.scrollText}>Your Car, Our Driver</Text></View>
+          <View style={styles.tagline}><Text style={{fontSize:25,color:'#000',fontWeight:'400',fontSize:20}}>Verified & Trained</Text></View>
+          <View style={styles.tagline}><Text style={{fontSize:25,color:'#000',fontWeight:'400',fontSize:20}}>Anytime, Anywhere</Text></View>
+        </ScrollView></View>
+
+           {/* textinput */}
+           <View style={styles.inputtextContainer}>
+                <TextInput
+        style={styles.input}
+        keyboardType='numeric'
+        placeholder="OTP"
+        maxLength={6}
+        value={enterOTP}
+        onBlur={() => ValidateOTP()}
+        onChangeText={(enterOTP) => setEnterOTP(enterOTP)}
+      />
+     {/* Submit Button */}
+      <TouchableOpacity style={styles.button}  onPress={() => submitWithOTP()}><Text style={{fontWeight:'500',color:'#000'}}>VERIFY</Text></TouchableOpacity>
+      </View>
+     
+<View style={styles.buttonsContainer}>
+    <TouchableOpacity  onPress={() => onResendOtp()} style={styles.ResendButtom}><Text style={{fontWeight:'500',color:'#000'}}>RESEND</Text></TouchableOpacity>
+    <TouchableOpacity  onPress={() => navigation.navigate('Login')} style={styles.CancelButtom}><Text style={{fontWeight:'500',color:'#000'}}>CANCEL</Text></TouchableOpacity>
+</View>
+
+      </View>
+      {err && enterOTP ? <View
+        style={styles.errorstyle}
+      >
+        <Text testID={'lblerrormsg'} style={styles.errMsg}>{enterOTP}</Text>
+      </View>
+        : null}
+
+      {(responseMessage != 'Sucess' && responseMessage != '') ? <View style={styles.errorstyle}>
+        <Text testID={'lblerrormsg'} style={styles.errMsg}>{responseMessage}</Text>
+      </View>
+        : null}</KeyboardAvoidingView>
+    )
+}
+
+export default OTP
+
+const styles = StyleSheet.create({
+    logo:{width:120,height:120,backgroundColor:'#eee',borderRadius:80,
+    justifyContent:'center',alignItems:'center',marginTop:'12%',
+    marginBottom:8,borderWidth:1,borderColor:'#ccc',
+    alignSelf:'center'},
+    tagline:{ backgroundColor: "#fff", flex: 1, width: 393,height:50 ,
+    alignItems:'center',justifyContent:'center',marginBottom:110},
+
+    inputtextContainer:{
+        width:'90%',flexDirection:'column',flexDirection:'row',alignSelf:'center',
+        marginLeft:10
+    },
+    input: {
+        height: 50,width:'70%',borderWidth: 1,padding: 15, borderColor:'#ccc',
+        borderTopLeftRadius:20,borderBottomLeftRadius:20,fontWeight:'500',fontSize:15
+      },
+      button:{
+        borderColor:'#ccc',borderWidth:1,width:'26%',height:50, alignItems:'center',
+        justifyContent:'center',borderTopRightRadius:20,borderBottomRightRadius:20,
+        backgroundColor:'#FFB500',borderLeftWidth:0,
+      },
+      buttonsContainer:{
+          alignContent:'center',alignItems:'center',justifyContent:'center',
+  marginTop:50, flexDirection:'row',
+      },
+      ResendButtom:{
+          backgroundColor:'#FFB500',width:'25%', height:45,alignItems:'center',
+          justifyContent:'center',borderRadius:20, marginRight:20
+      },
+      CancelButtom:{
+        backgroundColor:'#ccc',width:'25%',height:45,
+        alignItems:'center',justifyContent:'center',borderRadius:20,marginLeft:20
+      },
+      scrollText:{fontSize:25,color:'#000',fontWeight:'400',fontSize:20},
+  errMsg: { color: '#ff0000', fontSize: 12, textAlign: 'center', marginLeft: 15 },
+  errorstyle: { backgroundColor: '#F7D7DA', paddingTop: 5, paddingBottom: 5, paddingLeft: 0, paddingRight: 10, marginLeft: 10, marginRight: 10, borderRadius: 8, height: 50, justifyContent: 'center',alignItems:'center',position:'absolute',bottom:20,width:w-20 }
+})
