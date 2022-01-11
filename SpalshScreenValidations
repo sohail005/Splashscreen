@@ -1,0 +1,54 @@
+import React, { useEffect } from 'react';
+import { View, Image, StyleSheet, StatusBar, Dimensions } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage'
+
+const w = Dimensions.get('screen').width;
+const h = Dimensions.get('screen').height;
+
+const Splash = ({ navigation }) => {
+
+  useEffect(() => {
+
+    const unsubscribe = navigation.addListener('focus', () => {
+      getCustomer();
+    });
+    return () => unsubscribe;
+  }, []);
+  const getCustomer = async () => {
+    let customerToken = await AsyncStorage.getItem('customerToken')
+  console.log('customerToken====>',customerToken);
+
+    setTimeout(() => {
+      if (customerToken != null && customerToken != '' && customerToken != undefined) {
+        navigation.navigate('HomeScreen');
+      }
+      else {
+        navigation.navigate('Login');
+      }
+    }, 2000)
+  }
+
+  
+  return (
+    <View style={styles.main_view}>
+      <StatusBar barStyle='dark-content'
+        backgroundColor='#fff' />
+      <Image
+        source={require('../images/splashimage.png')}
+        style={styles.logo} />
+    </View>
+  )
+
+}
+
+export default Splash
+
+const styles = StyleSheet.create({
+  main_view: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  logo: { width: w, height: h }
+
+})
