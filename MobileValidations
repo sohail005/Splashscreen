@@ -1,0 +1,240 @@
+import React, { useEffect, useState } from 'react'
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, Dimensions, KeyboardAvoidingView } from 'react-native'
+import { ScrollView } from 'react-native-gesture-handler';
+import api from '../Helper/helperModule';
+import Path from '../Helper/Api';
+
+const w = Dimensions.get('screen').width;
+const h = Dimensions.get('screen').height;
+
+const Login = ({ navigation },props) => {
+
+  const [mobile, setMobile] = useState('');
+  const [errMobileField, setErrorMobileField] = useState('');
+  const [responseMessage, setResponseMessage] = useState('');
+  const [mobileResponse, setMobileResponse] = useState(false);
+  const [err, setErr] = useState(null);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+        clearInputField();
+    });
+    return () => unsubscribe;
+}, []);
+
+const clearInputField = () => {
+  setMobile('');
+  setErrorMobileField('');
+  setResponseMessage('');
+  setMobileResponse('');
+  setErr(null);
+}
+
+/* Getting MObile Number For Validations */
+  const onSubmitForm = async () => {
+    const Request = {
+      "Mobile": mobile,
+      "WebUserTypeId": 1
+
+    }
+
+    api.postData(Path.verifymobile, Request).then((response) => {
+      console.log('verify mobile response-------', response.data)
+
+      if (response != undefined && response != null) {
+
+        if (response.data.ReturnCode == 0) {
+          setResponseMessage(response.data.ReturnMessage);
+          setMobileResponse(true);
+          navigation.navigate('OTP',{mobilenumber:mobile})
+
+        } else if(response.data.ReturnCode == 15) {
+          setResponseMessage('');
+          setResponseMessage(response.data.ReturnMessage);
+          navigation.navigate('Register',{mobilenumber:mobile})
+        }
+        else{
+          setResponseMessage('');
+          setResponseMessage(response.data.ReturnMessage);
+        }
+      }
+    });
+  }
+
+  /* Validate Mobile number */
+  const validateMobile = () => {
+    let isFormValidated = true;
+
+    let errors = {
+      mobile: null,
+    }
+
+    if (mobile == '' || mobile == null) {
+      errors.mobile = 'Enter Mobile Number'
+      isFormValidated = false;
+      setErrorMobileField(errors.mobile);
+    }
+    else {
+      setErrorMobileField('');
+    }
+
+    if (mobile != '') {
+      let regexMobile = /^[6-9][0-9]{9}$/;
+      let isValidMobile = regexMobile.test(mobile);
+
+      if (!isValidMobile || mobile.length < 10) {
+        errors.mobile = 'Invalid Mobile Number'
+        isFormValidated = false;
+        setErrorMobileField(errors.mobile);
+      }
+
+      if (!isFormValidated) {
+
+        setErr(errors)
+        return false
+      }
+    }
+    return true
+  }
+
+  /* Validation form */
+  const validateForm = () => {
+    let isFormValidated = true;
+
+    let errors = {
+      mobile: null,
+    }
+
+    if (mobile == '' || mobile == null) {
+      errors.mobile = 'Enter Mobile Number'
+      isFormValidated = false;
+      setErrorMobileField(errors.mobile);
+    }
+    else {
+      setErrorMobileField('');
+    }
+
+    if (mobile != '') {
+      let regexMobile = /^[6-9][0-9]{9}$/;
+      let isValidMobile = regexMobile.test(mobile);
+
+      if (!isValidMobile || mobile.length < 10) {
+        errors.mobile = 'Invalid Mobile Number'
+        isFormValidated = false;
+        setErrorMobileField(errors.mobile);
+      }
+
+      if (!isFormValidated) {
+
+        setErr(errors)
+        return false
+      }
+    }
+    return true
+  }
+
+  /* On Submit Function */
+  const onSubmit = () => {
+    setResponseMessage('');
+
+    if (validateForm() === true) {
+      setErr(null)
+      onSubmitForm()
+    }
+    else {
+      console.log('Invalid inputs')
+    }
+  }
+
+
+  return (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={{ flex: 1, backgroundColor: '#fff' }}
+    >
+      <View style={styles.container}>
+        <View style={styles.logo}><Text style={{ fontSize: 30, fontWeight: '700', elevation: 20 }}>HOPP</Text></View>
+       {/* Horizontal Scroll Bar */}
+        <View>
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+          >
+            <View style={styles.tagline}><Text style={styles.taglineText}>Your Car, Our Driver</Text></View>
+            <View style={styles.tagline}><Text style={styles.taglineText}>Verified & Trained</Text></View>
+            <View style={styles.tagline}><Text style={styles.taglineText}>Anytime, Anywhere</Text></View>
+          </ScrollView></View>
+        {/* textinput */}
+        <View style={styles.inputtextContainer}>
+          <View style={styles.countryCode}><Text>+91</Text></View>
+          <TextInput
+            style={styles.input}
+            keyboardType='numeric'
+            placeholder="MOBILE NUMBER"
+            maxLength={10}
+            value={mobile}
+            onBlur={() => validateMobile()}
+            onChangeText={(text) => { setMobile(text) }}
+          />
+          <TouchableOpacity
+            style={styles.button}
+            onPress={() => onSubmit()}
+          >
+            <Text style={{ fontWeight: '500', color: '#000' }}>NEXT</Text></TouchableOpacity>
+        </View>
+        <View style={{ alignSelf: 'center', marginTop: 25 }}>
+          <Text style={{ fontWeight: '400', color: '#000', fontSize: 16 }}>By Creating an account or logging you in to agree to  HOPP   <Text style={{ color: 'blue' }}> "Conditions of use"</Text>   and   <Text style={{ color: 'blue' }}>"Terms and  Conditions"</Text>. </Text>
+        </View>
+      </View>
+      {err && errMobileField ? <View
+        style={styles.errorstyle}
+      >
+        <Text testID={'lblerrormsg'} style={styles.errMsg}>{errMobileField}</Text>
+      </View>
+        : null}
+
+      {(responseMessage != 'Sucess' && responseMessage != '') ? <View style={styles.errorstyle}>
+        <Text testID={'lblerrormsg'} style={styles.errMsg}>{responseMessage}</Text>
+      </View>
+        : null}
+    </KeyboardAvoidingView>
+  )
+}
+
+export default Login
+
+const styles = StyleSheet.create({
+  logo: {
+    width: 120, height: 120, backgroundColor: '#eee', borderRadius: 80,
+    justifyContent: 'center', alignItems: 'center', marginTop: '12%',
+    marginBottom: 8, borderWidth: 1, borderColor: '#ccc',
+    alignSelf: 'center'
+  },
+  tagline: {
+    backgroundColor: "#fff", flex: 1, width: 393, height: 50,
+    alignItems: 'center', justifyContent: 'center', marginBottom: 110
+  },
+  inputtextContainer: {
+    width: '90%', flexDirection: 'column',
+    flexDirection: 'row',
+    alignSelf: 'center'
+  },
+  input: {
+    height: 50, width: '60%', borderWidth: 1, padding: 15, borderLeftWidth: 0,
+    borderColor: '#ccc', fontWeight: '500',
+  },
+  countryCode: {
+    borderColor: '#ccc', borderWidth: 1, width: '15%', height: 50, alignItems: 'center',
+    justifyContent: 'center', borderTopLeftRadius: 20, borderBottomLeftRadius: 20,
+    borderRightColor: '#fff',
+  },
+  button: {
+    borderColor: '#ccc', borderWidth: 1, width: '23%', height: 50, alignItems: 'center',
+    justifyContent: 'center', borderTopRightRadius: 20, borderBottomRightRadius: 20,
+    backgroundColor: '#FFB500', borderLeftWidth: 0,
+  },
+  taglineText: { fontSize: 25, color: '#000', fontWeight: '400', fontSize: 20 },
+  errorstyle: { backgroundColor: '#F7D7DA', paddingTop: 5, paddingBottom: 5, paddingLeft: 0, paddingRight: 10, marginLeft: 10, marginRight: 10, borderRadius: 8, height: 50, justifyContent: 'center',alignItems:'center',position:'absolute',bottom:20,width:w-20 },
+  errMsg: { color: '#ff0000', fontSize: 12, textAlign: 'center', marginLeft: 15 },
+})
